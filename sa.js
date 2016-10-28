@@ -1,42 +1,81 @@
 import {get,set} from 'js-cookie'
 import {v4} from 'node-uuid'
-import {stringify} from 'query-string'
 
-const endpoint = 'http://localhost:5000/api/ping/'
+const _endpoint = 'http://localhost:5000/api/'
 
-const ping = (extraData) => {
+const getAnonId = () => {
+  let anonId = get('anonId')
+  if(!anonId){
+    anonId = v4();
+    set('anonId', anonId);
+  }
+  return anonId
+}
 
-    const url = window.location.href
-    const path = window.location.pathname
-    const referrer = document.referrer
-    const title = document.title
+const getContext = () => ({
+    url: window.location.href,
+    path: window.location.pathname,
+    referrer: document.referrer,
+    title: document.title,
+    userAgent: navigator.userAgent,
+})
 
-    const gsId = extraData && extraData.gsId
+const page = extraData => {
 
-    let anonId = undefined
-    if(!gsId){
-      anonId = get('anonId')
-      if(!anonId){
-        anonId = v4();
-        set('anonId',anonId);
-      }
-    }
+  const gsId = get('gsId')
+  const anonId = getAnonId()
 
   let data = {
     gsId,
     anonId,
-    url,
-    path,
-    referrer,
-    title,
   }
 
-  // Object.assign(data,extraData)
+  Object.assign(data, getContext())
+  Object.assign(data, extraData)
 
-  const xhr = new XMLHttpRequest()
   console.log(data)
-  xhr.open('GET', endpoint + '?' +stringify(data))
-  xhr.send();
+
+  const xhr = new XMLHttpRequest();
+  xhr.open("POST", _endpoint+ "page/");
+  xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+  xhr.send(JSON.stringify(data));
 }
-ping()
+
+const identify = gsId => {
+  set('gsId', gsId)
+
+  let data = {
+    gsId,
+    anonId: getAnonId()
+  }
+
+  console.log(data)
+
+  const xhr = new XMLHttpRequest();
+  xhr.open("POST", _endpoint+ "identify/");
+  xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+  xhr.send(JSON.stringify(data));
+}
+
+const group = orgId => {
+  let data = {
+    orgId,
+    gsId:get('gsId'),
+    anonId: getAnonId(),
+  }
+
+  console.log(data)
+
+  const xhr = new XMLHttpRequest();
+  xhr.open("POST", endpoint+ "group/");
+  xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+  xhr.send(JSON.stringify(data));
+}
+
+// page();
+// identify('12345');
+// group('99');
+window.sa  = {
+ page, identify, group
+}
 // module.exports = ping
